@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <wex.h>
 #include "cStarterGUI.h"
-#include "cGraph.h"
+#include "GraphTheory.h"
 
 class cColor
 {
@@ -14,10 +14,13 @@ public:
     void generate1();
     void generate2();
     void color();
+    void display();
 
 private:
     raven::graph::cGraph g;
     std::vector<int> vColor;
+
+    std::string viz();
 };
 
 void cColor::generate1()
@@ -57,8 +60,6 @@ void cColor::generate2()
     g.add("5", "11");
     g.add("12", "17");
     g.add("18", "6");
-
-
 }
 
 void cColor::color()
@@ -118,11 +119,11 @@ void cColor::color()
                 int ei = g.find(e.first, e.second);
                 se += vColor[ei];
 
-                std::cout 
-                          << g.userName(g.src(ei))
-                          << " " << g.userName(g.dest(ei))
-                          << " color " << vColor[ei]
-                          << "\n";
+                std::cout
+                    << g.userName(g.src(ei))
+                    << " " << g.userName(g.dest(ei))
+                    << " color " << vColor[ei]
+                    << "\n";
             }
             std::cout << "sum of all edge colors " << se << "\n";
             return;
@@ -135,6 +136,56 @@ void cColor::color()
         vColor[maxEdge] = 2;
 
     } // end loop A
+}
+
+void cColor::display()
+{
+    raven::graph::sGraphData gd;
+    gd.g = g;
+    RunDOT(
+        gd.g,
+        viz());
+}
+
+std::string cColor::viz()
+{
+    std::string graphvizgraph = "graph";
+    std::string graphvizlink = "--";
+
+    std::stringstream f;
+    f << graphvizgraph << " G {\n";
+
+    // loop over vertices
+    for (int vi = 0; vi < g.vertexCount(); vi++)
+    {
+        f << g.userName(vi)
+          << " [  penwidth = 3.0 ];\n";
+    }
+
+    // std::cout << "pathViz " << pathText() << "\n";
+
+    // loop over edges
+    for (int v1 = 0; v1 < g.vertexCount(); v1++)
+    {
+        for (int v2 : g.adjacentOut(v1))
+        {
+            // check not reverse link in undirected graph
+            if (!g.isDirected())
+                if (v1 > v2)
+                    continue;
+
+            f << g.userName(v1) << graphvizlink
+              << g.userName(v2);
+
+            // edge color
+            static std::vector<std::string> vscol {  "black", "blue", "red" };
+            f << "[color=\"" << vscol[vColor[g.find(v1,v2)]] << "\"] ";
+
+            f << ";\n";
+        }
+    }
+    f << "}\n";
+    return f.str();
 }
 
 class cGUI : public cStarterGUI
@@ -150,6 +201,7 @@ public:
         // std::cout << "==================================\n";
         color.generate2();
         color.color();
+        color.display();
 
         show();
         run();
