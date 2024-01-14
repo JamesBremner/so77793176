@@ -72,9 +72,11 @@ void cColor::color()
         int max = 0;
         int maxEdge = 0;
 
-        for (int E = 0; E < g.edgeCount(); E++)
+        for (int E = 0; E < 2 * g.edgeCount(); E++)
         {
             if (vColor[E] != 1)
+                continue;
+            if( g.src(E) > g.dest(E))
                 continue;
 
             int S = 0;
@@ -85,21 +87,28 @@ void cColor::color()
                 continue;
             for (int v : va)
             {
+                if( vsrc > v )
+                    continue;
                 int ei = g.find(vsrc, v);
                 if (vColor[ei] != 1)
                     continue;
                 S++;
             }
-            va = g.adjacentOut(g.dest(E));
+            int vdst = g.dest(E);
+            va = g.adjacentOut(vdst);
             if (va.size() == 1)
                 continue;
             for (int v : va)
             {
-                int ei = g.find(E, v);
+                if( vdst > v )
+                    continue;
+                int ei = g.find(vdst,v);
                 if (vColor[ei] != 1)
                     continue;
                 S++;
             }
+
+            //std::cout << g.userName(g.src(E)) <<" "<< g.userName(g.dest(E)) <<" "<< S << "\n";
 
             if (S > max)
             {
@@ -129,11 +138,23 @@ void cColor::color()
             return;
         }
 
-        for (int v : g.adjacentOut(g.src(maxEdge)))
-            vColor[g.find(maxEdge, v)] = 0;
-        for (int v : g.adjacentOut(g.dest(maxEdge)))
-            vColor[g.find(maxEdge, v)] = 0;
+        for (int v : g.adjacentOut(g.src(maxEdge))) {
+            int ie = g.find(g.src(maxEdge), v);
+            if( vColor[ie] != 1 )
+                continue;
+            vColor[ie] = 0;
+            //std::cout << g.userName(g.src(maxEdge)) <<" "<< g.userName(v) << " 0, ";
+        }
+        for (int v : g.adjacentOut(g.dest(maxEdge))) {
+            int ie = g.find(g.dest(maxEdge), v);
+            if( vColor[ie] != 1 )
+                continue;
+            vColor[ie] = 0;
+            //std::cout << g.userName(g.dest(maxEdge)) <<" "<< g.userName(v) << " 0, ";
+        }
         vColor[maxEdge] = 2;
+
+        //std::cout << g.userName(g.src(maxEdge)) <<" "<< g.userName(g.dest(maxEdge)) << " 2\n";
 
     } // end loop A
 }
@@ -178,8 +199,12 @@ std::string cColor::viz()
               << g.userName(v2);
 
             // edge color
-            static std::vector<std::string> vscol {  "black", "blue", "red" };
-            f << "[color=\"" << vscol[vColor[g.find(v1,v2)]] << "\"] ";
+            static std::vector<std::string> vscol {  "black", "blue", "green", "red" };
+            int ei = g.find(v1,v2);
+            int icol = 3;
+            // if( 0 <= ei && ei <= 3 )
+                icol = vColor[ei];
+            f << "[color=\"" << vscol[icol] << "\"] ";
 
             f << ";\n";
         }
@@ -196,12 +221,15 @@ public:
               "Starter",
               {50, 50, 1000, 500})
     {
-        // color.generate1();
-        // color.color();
-        // std::cout << "==================================\n";
-        color.generate2();
+        color.generate1();
         color.color();
-        color.display();
+
+        // std::cout << "==================================\n";
+
+        // color.generate2();
+        // color.color();
+
+         color.display();
 
         show();
         run();
